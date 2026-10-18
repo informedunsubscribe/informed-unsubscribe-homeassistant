@@ -1,5 +1,5 @@
 name: Informed Unsubscribe
-version: "0.53.7"
+version: "0.53.8"
 slug: informed_unsubscribe
 # Built and published by .github/workflows/build.yml; {arch} is filled in by Home Assistant.
 image: ghcr.io/informedunsubscribe/{arch}-informed-unsubscribe

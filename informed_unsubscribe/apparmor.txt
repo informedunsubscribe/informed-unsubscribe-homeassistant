@@ -2,7 +2,9 @@
 
 # Home Assistant loads this for the app and renames the profile to its own id for it (such as
 # "266e2efd_informed_unsubscribe"), so rules refer to the profile as @{profile_name}.
-profile informed_unsubscribe flags=(attach_disconnected,mediate_deleted) {
+# "complain" logs what would be refused without refusing it. Remove it only once a full run on
+# Home Assistant logs no apparmor="ALLOWED" lines in `dmesg`.
+profile informed_unsubscribe flags=(complain,attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
   # Home Assistant stops the app with a signal; the app stops its own helpers on a timeout.
@@ -19,9 +21,11 @@ profile informed_unsubscribe flags=(attach_disconnected,mediate_deleted) {
   /usr/bin/python3* ix,
   /usr/bin/tesseract ix,
 
+  /opt/informed_unsubscribe/ r,
   /opt/informed_unsubscribe/** r,
   /lib/** mr,
   /usr/lib/** mr,
+  /usr/share/tessdata/ r,
   /usr/share/tessdata/** r,
   /usr/share/zoneinfo/** r,
   /etc/ssl/** r,
