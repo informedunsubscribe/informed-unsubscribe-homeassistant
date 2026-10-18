@@ -40,6 +40,7 @@ for you to review and send.
 
    The app then crawls the site's contact, privacy and opt-out pages for email addresses and
    ranks them.
+
 6. A draft appears in the app's sidebar panel. Nothing is sent until you press Send; it goes out
    over SMTP from the dedicated mailbox.
 
@@ -58,11 +59,9 @@ name, the crawl of the sender's site, and the mailbox connection.
 
 ## Keeping your address off lists
 
-This app gets you off mailing lists once junk mail arrives. Fewer lists get your home address
+This app helps you get off mailing lists once junk mail arrives. Fewer lists get your home address
 in the first place if you give merchants and online services a virtual mailing address instead.
-I use [Virtual Post Mail](https://refer.virtualpostmail.com/l/1KHIYEPRR/vpmmail) (referral link -
-thanks for your support!). It receives mail at an address it gives you, scans it, and lets you
-choose what happens to each piece: shred it, forward it, or keep it.
+I've been using [Virtual Post Mail](https://refer.virtualpostmail.com/l/1KHIYEPRR/vpmmail) (referral link). For more on digital hygiene I enjoyed [Andrej Karpathy's post](https://karpathy.bearblog.dev/digital-hygiene/)
 
 ## Corrections
 
@@ -90,21 +89,21 @@ Copy the `informed_unsubscribe/` folder to `/addons/informed_unsubscribe` on Hom
 Samba or SSH app), then go to Settings → Apps → App store → ⋮ → Check for updates. Install
 "Informed Unsubscribe" from the local apps section, fill in the Configuration tab and start it.
 
-| Option | Meaning |
-|---|---|
-| `email_address`, `email_mailbox_password` | The dedicated mailbox address and its app password |
-| `physical_mail_address` | Quoted in each request so the sender can find the listing. Start it with the house number; that is how the app finds the addressee on a scan |
-| `resident_last_names` | Last names of everyone who lives here. Leave empty to turn off the "does not live here" requests. |
-| `bcc_email_address` | Optional address, such as your main Gmail, that gets a blind copy of every request you send. The sender never sees it |
-| `previous_resident_last_names` | Optional. Last names of people who used to live here. Helps the app find their name on a scan and treat the piece as not for a resident |
-| `california_resident` | Adds a paragraph invoking your deletion and opt-out rights under the California Consumer Privacy Act |
-| `registered_with_dmachoice` | Adds a line saying the address is registered with DMAchoice. Turn on only if it is; there is no government do-not-mail list in the US |
-| `brave_search_api_key` | Optional [Brave Search API](https://brave.com/search/api/) key. With it, sender lookups use the API and are not rate-limited. Without it the app scrapes DuckDuckGo, which blocks after a few searches |
-| `from_name` | Optional name shown to senders beside the mailbox address. Every sender sees it. Empty uses the street from `physical_mail_address` with "Resident", such as "12 Oak Court Resident" |
-| `reply_to_email_address` | Optional address for senders' replies; otherwise they go to the dedicated mailbox. Unlike `bcc_email_address`, the sender does see this address |
-| `hours_between_runs` | Hours between automatic runs (default 24), counted from the end of the last run. Ignored when `run_at_time` is set. "Run now" in the app starts one immediately |
-| `run_at_time` | Optional time of day, 24-hour `HH:MM` in Home Assistant's time zone, such as `06:00`. The app then runs once a day at that time instead of every few hours |
-| `notify_when_mail_to_review` | Shows a Home Assistant notification when new mail arrives in For Review and removes it once the queue is empty (default on) |
+| Option                                    | Meaning                                                                                                                                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `email_address`, `email_mailbox_password` | The dedicated mailbox address and its app password                                                                                                                                                     |
+| `physical_mail_address`                   | Quoted in each request so the sender can find the listing. Start it with the house number; that is how the app finds the addressee on a scan                                                           |
+| `resident_last_names`                     | Last names of everyone who lives here. Leave empty to turn off the "does not live here" requests.                                                                                                      |
+| `bcc_email_address`                       | Optional address, such as your main Gmail, that gets a blind copy of every request you send. The sender never sees it                                                                                  |
+| `previous_resident_last_names`            | Optional. Last names of people who used to live here. Helps the app find their name on a scan and treat the piece as not for a resident                                                                |
+| `california_resident`                     | Adds a paragraph invoking your deletion and opt-out rights under the California Consumer Privacy Act                                                                                                   |
+| `registered_with_dmachoice`               | Adds a line saying the address is registered with DMAchoice. Turn on only if it is; there is no government do-not-mail list in the US                                                                  |
+| `brave_search_api_key`                    | Optional [Brave Search API](https://brave.com/search/api/) key. With it, sender lookups use the API and are not rate-limited. Without it the app scrapes DuckDuckGo, which blocks after a few searches |
+| `from_name`                               | Optional name shown to senders beside the mailbox address. Every sender sees it. Empty uses the street from `physical_mail_address` with "Resident", such as "12 Oak Court Resident"                   |
+| `reply_to_email_address`                  | Optional address for senders' replies; otherwise they go to the dedicated mailbox. Unlike `bcc_email_address`, the sender does see this address                                                        |
+| `hours_between_runs`                      | Hours between automatic runs (default 24), counted from the end of the last run. Ignored when `run_at_time` is set. "Run now" in the app starts one immediately                                        |
+| `run_at_time`                             | Optional time of day, 24-hour `HH:MM` in Home Assistant's time zone, such as `06:00`. The app then runs once a day at that time instead of every few hours                                             |
+| `notify_when_mail_to_review`              | Shows a Home Assistant notification when new mail arrives in For Review and removes it once the queue is empty (default on)                                                                            |
 
 ## Development
 
