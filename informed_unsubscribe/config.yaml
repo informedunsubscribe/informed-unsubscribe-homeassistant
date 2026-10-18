@@ -1,0 +1,55 @@
+name: Informed Unsubscribe
+version: "0.53.1"
+slug: informed_unsubscribe
+description: Turns USPS Informed Delivery digests into opt-out requests for paper junk mail
+arch:
+  - amd64
+  - aarch64
+init: false
+ingress: true
+# Lets the app put up Home Assistant's "mail to review" notification.
+homeassistant_api: true
+ingress_port: 8099
+panel_icon: mdi:email-off-outline
+panel_title: Informed Unsubscribe
+# Every option is listed with a default so the Configuration page shows them all without
+# opening "unused optional options".
+options:
+  email_address: null
+  email_mailbox_password: null
+  physical_mail_address: null
+  resident_last_names: []
+  previous_resident_last_names: []
+  california_resident: false
+  registered_with_dmachoice: false
+  brave_search_api_key: ""
+  from_name: ""
+  bcc_email_address: ""
+  reply_to_email_address: ""
+  imap_host: imap.gmail.com
+  smtp_host: smtp.gmail.com
+  hours_between_runs: 24
+  run_at_time: ""
+  notify_when_mail_to_review: true
+  days_to_keep_scans: 90
+schema:
+  email_address: email
+  email_mailbox_password: password
+  physical_mail_address: str
+  resident_last_names:
+    - str
+  previous_resident_last_names:
+    - str
+  california_resident: bool
+  registered_with_dmachoice: bool
+  brave_search_api_key: password?
+  from_name: str?
+  bcc_email_address: str?
+  reply_to_email_address: str?
+  imap_host: str
+  smtp_host: str
+  hours_between_runs: int(1,168)
+  # 24-hour HH:MM, or empty; the pattern allows empty because an unset option arrives as "".
+  run_at_time: match(^(([01][0-9]|2[0-3]):[0-5][0-9])?$)
+  notify_when_mail_to_review: bool
+  days_to_keep_scans: int(1,3650)

@@ -1,0 +1,52 @@
+configuration:
+  email_address:
+    name: Email address
+    description: The dedicated mailbox your Informed Delivery emails are forwarded to. Requests are sent from this address.
+  email_mailbox_password:
+    name: Email mailbox password
+    description: For Gmail this must be an app password, not the account's normal password.
+  physical_mail_address:
+    name: Physical mail address
+    description: Starting with the house number, for example "12 Oak Court, Springfield, IL 62704". Quoted in each request.
+  resident_last_names:
+    name: Last names of everyone who lives here
+    description: Mail addressed to anyone else gets a "does not live at this address" request. Leave empty to turn that off.
+  previous_resident_last_names:
+    name: Last names of people who used to live here
+    description: Optional. Helps the app recognise mail for previous residents, including when their name is hard to pick out on the scan.
+  california_resident:
+    name: California resident
+    description: Adds your deletion and opt-out rights under the California Consumer Privacy Act to each opt-out request.
+  registered_with_dmachoice:
+    name: Registered with DMAchoice
+    description: Adds a line saying this address is registered with DMAchoice. Turn on only if it is.
+  brave_search_api_key:
+    name: Brave Search API key
+    description: Optional. Used to find senders' websites. Without it the app uses DuckDuckGo, which often blocks automated searches.
+  from_name:
+    name: From name
+    description: Optional. When you send an unsubscribe email request, this is used as the sender name. If you leave this empty it will default to "{Street Number} {Street Name} Resident", for example "12 Oak Court Resident".
+  bcc_email_address:
+    name: Send me a copy at
+    description: Optional. Gets a blind copy of every request you send. The sender never sees it.
+  reply_to_email_address:
+    name: Reply-to address
+    description: Optional. Where senders' replies go, instead of the mailbox above. The sender can see this address.
+  imap_host:
+    name: Incoming mail server (IMAP)
+    description: Leave as is for Gmail.
+  smtp_host:
+    name: Outgoing mail server (SMTP)
+    description: Leave as is for Gmail.
+  hours_between_runs:
+    name: Hours between runs
+    description: How often the app checks the mailbox by itself. Ignored when "Run daily at" is set. "Run now" in the app checks at once.
+  run_at_time:
+    name: Run daily at
+    description: Optional. A time of day in 24-hour form, such as 06:00 or 17:30. The app then checks the mailbox once a day at that time instead of every few hours. Leave empty to use "Hours between runs".
+  notify_when_mail_to_review:
+    name: Notify me when there is mail to review
+    description: Shows a Home Assistant notification when new mail arrives in For Review, and removes it once the queue is empty.
+  days_to_keep_scans:
+    name: Days to keep scans
+    description: The scan of a piece of mail is deleted this many days after it arrives. Its entry in History is kept. Scans of mail still waiting for a decision or with a request in review are kept until that is settled.

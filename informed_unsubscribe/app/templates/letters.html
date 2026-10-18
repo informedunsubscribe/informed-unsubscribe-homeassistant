@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email Templates · Informed Unsubscribe</title>
+{% include "style.html" %}
+<style>
+  .template { grid-template-columns: 1fr 300px; }
+  /* One column on a phone, with the variables first so they are in view while writing. */
+  @media (max-width: 800px) {
+    .template { grid-template-columns: 1fr; }
+    .template > div:last-child { order: -1; }
+  }
+  .template textarea { min-height: 330px; }
+  .variables { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .variables code { font-family: ui-monospace, monospace; font-size: 13px; }
+  .template h3 { font-size: 15px; margin: 28px 0 0; padding-top: 18px; border-top: 1px solid var(--line); }
+  .template h3 + p { margin: 2px 0 10px; }
+  .preview { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+  .preview pre { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Email Templates</h1>
+      <div class="muted"><a href="./">← Back to mail</a></div>
+    </div>
+  </header>
+  <form method="post" action="templates">
+    {% for t in templates %}
+    <h2>{{ t.title }}</h2>
+    <div class="card draft template" data-kind="{{ t.kind }}">
+      <div>
+        <label for="{{ t.kind }}-subject">Subject</label>
+        <input id="{{ t.kind }}-subject" name="{{ t.kind }}_subject" value="{{ t.subject }}">
+        <label for="{{ t.kind }}-body">Body</label>
+        <textarea id="{{ t.kind }}-body" name="{{ t.kind }}_body">{{ t.body }}</textarea>
+        <p class="error unknown" {{ "" if t.unknown else "hidden" }}>Not a variable, so it will appear in the email exactly as typed: <span>{% for name in t.unknown %}{{ "{" ~ name ~ "}" }}{{ ", " if not loop.last }}{% endfor %}</span></p>
+        <div class="row">
+          <button class="primary" name="action" value="save">Save</button>
+          <button name="action" value="reset_{{ t.kind }}" {{ "disabled" if t.is_default }}>Reset to default</button>
+          {% if t.is_default %}<span class="muted">Using the default wording.</span>{% endif %}
+        </div>
+        <h3>Preview</h3>
+        <p class="muted">Filled in from {{ t.sample_from }}.</p>
+        <div class="preview"><strong class="preview-subject"></strong><pre class="preview-body"></pre></div>
+      </div>
+      <div>
+        <label>Variables</label>
+        <ul class="variables">
+          {% for name, meaning in variables.items() %}
+          <li><code>{{ "{" ~ name ~ "}" }}</code> <span class="muted">{{ meaning }}</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+  </form>
+</main>
+<script>
+  // Keep each preview and its warning in step with what is typed.
+  (function () {
+    var samples = {{ samples | tojson }}, known = {{ variables | list | tojson }};
+    function fill(text, values) {
+      return text.replace(/\{([a-z_]+)\}/g, function (whole, name) {
+        return Object.prototype.hasOwnProperty.call(values, name) ? values[name] : whole;
+      });
+    }
+    document.querySelectorAll(".template").forEach(function (card) {
+      var subject = card.querySelector("input"), body = card.querySelector("textarea");
+      var warning = card.querySelector(".unknown");
+      function refresh() {
+        var values = samples[card.dataset.kind];
+        card.querySelector(".preview-subject").textContent = fill(subject.value, values);
+        card.querySelector(".preview-body").textContent = fill(body.value, values);
+        var unknown = [];
+        (subject.value + " " + body.value).replace(/\{([a-z_]+)\}/g, function (whole, name) {
+          if (known.indexOf(name) < 0 && unknown.indexOf(whole) < 0) unknown.push(whole);
+        });
+        warning.hidden = !unknown.length;
+        warning.querySelector("span").textContent = unknown.join(", ");
+      }
+      [subject, body].forEach(function (field) { field.addEventListener("input", refresh); });
+      refresh();
+    });
+  })();
+</script>
+</body>
+</html>

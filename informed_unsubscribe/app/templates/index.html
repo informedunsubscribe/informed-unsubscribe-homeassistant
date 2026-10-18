@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informed Unsubscribe</title>
+{% include "style.html" %}
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Informed Unsubscribe</h1>
+      <div class="muted">
+        {# Written in UTC; the script at the end of the page puts it in the viewer's own time. #}
+        {% if worker.last_run %}Last run <time id="last-run" datetime="{{ worker.last_run }}">{{ worker.last_run | short_date }} {{ worker.last_run[11:16] }} UTC</time>
+        {{ "had errors" if worker.errors else "succeeded" }}
+        {% else %}First run in progress{% endif %}
+        · {% if cfg.run_at_time %}runs daily at {{ cfg.run_at_time }}{% else %}runs every {{ cfg.hours_between_runs }} h{% endif %} · {{ cfg.email_address or "no mailbox configured" }}
+        {# target="_top": the app is shown inside Home Assistant's page, and this link leaves it #}
+        {% if settings_url %}· <a href="{{ settings_url }}" target="_top">Settings</a>{% endif %}
+        · <a href="templates">Email Templates</a>
+      </div>
+      <div id="activity" class="activity" role="status" {{ "" if worker.activity else "hidden" }}>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="activity-text">{{ worker.activity }}… this can take a few minutes</span>
+      </div>
+      <div id="stale" class="activity" hidden>New results are ready. <a href="./">Reload the page</a> to see them (unsaved edits will be lost).</div>
+    </div>
+    <div class="actions">
+      {# A phone offers its camera or its photo library, a computer its file picker; the script
+         at the end of the page sends the picture. #}
+      <button type="button" id="add-photo">Add photo</button>
+      <input id="photo" type="file" accept="image/*" hidden>
+      <form method="post" action="check"><button id="run-now" {{ "disabled" if worker.activity }}>Run now</button></form>
+    </div>
+  </header>
+  <p id="photo-error" class="error" hidden>The photo could not be added. Try again.</p>
+  {% for error in worker.errors %}<p class="error">{{ error }}</p>{% endfor %}
+
+  {% macro label(category) %}{{ {"marketing": "Junk Mail", "real": "Not Junk", "undetermined": "Unclassified"}.get(category, "Waiting to be read") }}{% endmacro %}
+
+  {# What the app read off a piece, and one form to correct any of it. `key` keeps field ids
+     unique, since a piece can be listed in For Review and in History at once. #}
+  {# The usual "edit" icon: a pen over a square. #}
+  {% macro pencil(what) %}<button type="button" class="pencil" aria-label="Edit {{ what }}" title="Edit {{ what }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>{% endmacro %}
+
+  {# One form per piece. Text facts show as plain values with a pencil that turns them into a
+     field; a fact the app couldn't read starts out as an empty field. There is no save
+     button: each change is submitted as it is made (see the script at the end of the page). #}
+  {% macro facts(i, key, in_queue=true) %}
+  {% if i.has_image %}
+  <div class="shot">
+    <button type="button" class="scan" aria-label="Show the scan at full size"><img src="images/{{ i.piece_id }}" alt="{{ 'Photo' if i.photo else 'Scan' }} of the mailpiece" loading="lazy"></button>
+    {# Only the user's own photos: a digest scan always comes the right way up. #}
+    {% if i.photo and not i.reread %}<button type="button" class="turn" data-turn="pieces/{{ i.piece_id }}/turn" aria-label="Rotate the photo" title="Rotate the photo"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="10" width="11" height="11" rx="2"/><path d="M19 14V9a4 4 0 0 0-4-4h-5"/><path d="M13 2l-3 3 3 3"/></svg></button>{% endif %}
+  </div>
+  {% if i.reread %}<p class="activity"><span class="spinner" aria-hidden="true"></span>Reading the photo again…</p>{% endif %}
+  {% endif %}
+  <form method="post" action="pieces/{{ i.piece_id }}" class="facts">
+    <label for="{{ key }}-from">From</label>
+    <div class="field {{ '' if i.sender_name else 'editing' }}" {{ '' if i.sender_name else 'data-empty' }}>
+      <span class="value">{{ i.sender_name }}</span>
+      <input id="{{ key }}-from" name="sender" value="{{ i.sender_name or '' }}" placeholder="Who sent it?">
+      {{ pencil("sender") }}
+    </div>
+    <label for="{{ key }}-to">To</label>
+    <div class="field {{ '' if i.addressee else 'editing' }}" {{ '' if i.addressee else 'data-empty' }}>
+      <span class="value">{{ i.addressee }}</span>
+      <input id="{{ key }}-to" name="recipient" value="{{ i.addressee }}" placeholder="Who is it addressed to?">
+      {{ pencil("addressee") }}
+    </div>
+    <span></span>
+    <label class="choice"><input type="checkbox" name="lives_here" value="1" {{ "checked" if i.resident == 1 }}> Is current resident</label>
+    <label for="{{ key }}-type">Type</label>
+    <div>
+      <select id="{{ key }}-type" name="category">
+        {% if i.category not in ("marketing", "real") %}<option value="" selected>{{ label(i.category) }}</option>{% endif %}
+        <option value="marketing" {{ "selected" if i.category == "marketing" }}>Junk Mail</option>
+        <option value="real" {{ "selected" if i.category == "real" }}>Not Junk</option>
+      </select>
+      {% if i.reason %}<div class="muted">Reason: {{ i.reason }}</div>{% endif %}
+    </div>
+    <label for="{{ key }}-site">Website</label>
+    <div class="field">
+      <span class="value">{% if i.website %}<a href="{{ i.website }}" target="_blank" rel="noopener noreferrer">{{ i.website }}</a>{% if not i.verified %} · low confidence{% endif %}
+        {% elif in_queue and i.sender_name and i.research_status == "pending" %}<span class="activity"><span class="spinner" aria-hidden="true"></span>Processing…</span>
+        {% else %}None{% endif %}</span>
+      <input id="{{ key }}-site" name="website" value="{{ i.website or '' }}" list="{{ key }}-sites" placeholder="Sender's website">
+      <datalist id="{{ key }}-sites">{% for site in i.candidates or [] %}<option value="{{ site }}">{% endfor %}</datalist>
+      <input type="hidden" name="website_was" value="{{ i.website or '' }}">
+      {{ pencil("website") }}
+    </div>
+    {% if i.research_note and not i.research_note.startswith("Confirmed") and i.research_status != "pending" %}<span></span><div class="muted">{{ i.research_note }}</div>{% endif %}
+  </form>
+  {% endmacro %}
+
+  <h2>For Review ({{ queue | length }})</h2>
+  {% if not queue %}<p class="muted">Nothing to review.</p>{% endif %}
+  {% for d in queue %}
+  <div class="card draft">
+    {% if d.id %}
+    <div>{{ facts(d, "d" ~ d.id) }}</div>
+    <form method="post" action="drafts/{{ d.id }}">
+      <label for="to-{{ d.id }}">To</label>
+      {# While the address is being looked up, the empty box shows a spinner; it disappears
+         as soon as something is typed. The single-space placeholder is what lets CSS tell. #}
+      {% if d.research_status == "pending" and not d.to_addr %}
+      <div class="waiting">
+        <input id="to-{{ d.id }}" name="to_addr" type="email" value="" placeholder=" ">
+        <span class="activity"><span class="spinner" aria-hidden="true"></span>Processing…</span>
+      </div>
+      {% else %}
+      <input id="to-{{ d.id }}" name="to_addr" type="email" value="{{ d.to_addr }}" placeholder="No address found — enter one">
+      {% endif %}
+      {% if d.emails and d.website and not d.verified %}<div class="muted">Found on low confidence site <a href="{{ d.website }}" target="_blank" rel="noopener noreferrer">{{ d.website }}</a></div>{% endif %}
+      {% if d.emails[1:] %}<div class="muted">Also found: {{ d.emails[1:6] | join(", ") }}</div>{% endif %}
+      <label for="bcc-{{ d.id }}">Bcc</label>
+      <input id="bcc-{{ d.id }}" name="bcc" type="email" value="{{ cfg.bcc_email_address }}" placeholder="None">
+      <label for="subject-{{ d.id }}">Subject</label>
+      <input id="subject-{{ d.id }}" name="subject" value="{{ d.subject }}">
+      <label for="body-{{ d.id }}">Message</label>
+      <textarea id="body-{{ d.id }}" name="body">{{ d.body }}</textarea>
+      {# A scan shows only what the sender printed, so it goes along unless turned off. The
+         user's own photo can show more than the piece, so it only goes when turned on. #}
+      {% if d.has_image %}<label class="choice"><input type="checkbox" name="attach_scan" value="1" {{ "" if d.photo else "checked" }}> Attach {{ "your photo" if d.photo else "the scan" }}</label>{% endif %}
+      {% if d.error %}<p class="error">{{ d.error }}</p>{% endif %}
+      <div class="row">
+        {# No address to send to until the lookup finishes, unless the user types one in. #}
+        <button class="primary" name="action" value="send" {{ "data-waiting disabled" if d.research_status == "pending" and not d.to_addr }}>Send</button>
+        <button name="action" value="save">Save</button>
+        <button name="action" value="skip">Skip</button>
+      </div>
+    </form>
+    {% else %}
+    <div>{{ facts(d, "u" ~ d.piece_id) }}</div>
+    <p class="muted">No request written yet. Fill in what's missing on the left.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <h2>History</h2>
+  <form method="get" action="./" class="row">
+    <input name="sender" value="{{ sender }}" placeholder="Filter by sender or addressee" aria-label="Filter by sender or addressee">
+    <button>Filter</button>
+  </form>
+  {% if not history %}<p class="muted">{{ "No mail from or addressed to a name like that." if sender else "No mail yet." }}</p>{% else %}
+  <div class="history card">
+    <div class="hrow hhead"><span>Date</span><span>Sender</span><span>Addressed To</span><span>Mail Type</span><span>Unsubscribe Request</span><span></span></div>
+    {% for p in history %}
+    <details>
+      <summary class="hrow">
+        <span>{{ p.received | short_date }}</span>
+        <span>{{ p.sender_name or "—" }}</span>
+        <span>{{ p.addressee or "—" }}</span>
+        <span>{{ label(p.category) }}{% if p.resident == 0 %}, not a resident{% endif %}</span>
+        {# States name the channel ("email …") because other ways of sending may be added. #}
+        <span>{% if p.request_status == "sent" %}email sent<time class="when"> {{ p.request_sent_at | short_date }}</time>{% elif p.request_status == "draft" %}email in review{% elif p.request_status == "skipped" %}skipped{% elif p.unsure %}in review{% else %}NA{% endif %}</span>
+        <span><button type="button" class="trash" data-delete="pieces/{{ p.piece_id }}/delete" data-what="{{ p.sender_name or 'an unknown sender' }}, {{ p.received | short_date }}" aria-label="Delete" title="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></span>
+      </summary>
+      <div class="hbody draft">
+        <div>
+          {% if not p.has_image %}<p class="muted">The scan is no longer kept.</p>{% endif %}
+          {{ facts(p, "h" ~ p.piece_id, false) }}
+        </div>
+        <div>
+          {% if p.manual and p.auto_category and p.auto_category != p.category %}<p class="muted">The app had said {{ label(p.auto_category) | lower }}.</p>{% endif %}
+          {% if p.request_status in ("skipped", "sent") %}
+          <form method="post" action="drafts/{{ p.request_id }}" class="row"><button name="action" value="reopen">Reopen the {{ p.request_status }} request</button></form>
+          {% endif %}
+        </div>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+  <div class="row pager">
+    <span>{% if page > 1 %}<a href="./?page={{ page - 1 }}&sender={{ sender | urlencode }}">← Newer</a>{% endif %}</span>
+    <span>{% if more %}<a href="./?page={{ page + 1 }}&sender={{ sender | urlencode }}">Older →</a>{% endif %}</span>
+  </div>
+  {% endif %}
+
+  <dialog id="viewer" aria-label="Scan at full size"><img alt="Scan of the mailpiece at full size"></dialog>
+  {# Deleting can't be undone, so the trash icon only opens this; the form here does the deleting. #}
+  <dialog id="confirm-delete" aria-labelledby="confirm-delete-title">
+    <form method="post">
+      <p id="confirm-delete-title"><strong>Delete the mail from <span></span>?</strong></p>
+      <p class="muted">Its scan and any unsubscribe request written for it are removed too. This can't be undone.</p>
+      <div class="row">
+        <button type="button" value="cancel" autofocus>Cancel</button>
+        <button class="danger">Delete</button>
+      </div>
+    </form>
+  </dialog>
+  <footer class="muted">
+    v{{ version }} · Feedback: <a href="mailto:{{ feedback_email }}" target="_blank" rel="noopener noreferrer">{{ feedback_email }}</a>
+    {# A new tab, so the link doesn't replace the app inside Home Assistant's frame; noreferrer
+       keeps the app's own address from being passed along. #}
+    <br>Want to keep your home address private? I use a virtual address from
+    <a href="{{ referral_url }}" target="_blank" rel="noopener noreferrer">Virtual Post Mail</a> (referral link).
+    For more on digital hygiene see:
+    <a href="https://karpathy.bearblog.dev/digital-hygiene/" target="_blank" rel="noopener noreferrer">Andrej Karpathy's post</a>
+    <!-- · Download JSON of mail that was incorrectly classified:
+    <a href="corrections.json">redacted</a> (names and addresses removed where found; please check before sharing)
+    or <a href="corrections-full.json">non-redacted</a> -->
+  </footer>
+</main>
+<script>
+  // Show what the background run is doing, and bring in new results as they appear. The page
+  // is only reloaded automatically if nothing has been typed into it.
+  (function () {
+    var edited = false, shown = {{ {"activity": worker.activity} | tojson }}.activity, results = null;
+    // Choosing a photo is not an edit that a reload would lose.
+    document.addEventListener("input", function (e) { if (e.target.id !== "photo") edited = true; });
+    // While a card is processing, Send wakes up as soon as an address is typed into To.
+    document.addEventListener("input", function (e) {
+      if (e.target.name !== "to_addr") return;
+      var send = e.target.form.querySelector("button[data-waiting]");
+      if (send) send.disabled = !e.target.value.trim();
+    });
+    // The last run's time, in the time zone of whoever is looking: "2026 Oct 20 9:15 AM".
+    var lastRun = document.getElementById("last-run");
+    var ran = lastRun && new Date(lastRun.dateTime);
+    if (ran && !isNaN(ran)) {
+      var month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][ran.getMonth()];
+      lastRun.textContent = ran.getFullYear() + " " + month + " " + ran.getDate() + " "
+        + ran.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+    }
+    // Sending takes a few seconds: say so on the button at once, and lock the card's buttons
+    // so it can't be sent twice. A disabled button isn't submitted, so its action goes along
+    // in a hidden field instead.
+    document.addEventListener("submit", function (e) {
+      var pressed = e.submitter;
+      if (!pressed || pressed.name !== "action" || !e.target.matches("form[action^='drafts/']")) return;
+      var action = document.createElement("input");
+      action.type = "hidden"; action.name = "action"; action.value = pressed.value;
+      e.target.appendChild(action);
+      if (pressed.value === "send") {
+        pressed.innerHTML = '<span class="spinner" aria-hidden="true"></span>Sending…';
+      }
+      e.target.querySelectorAll("button").forEach(function (button) { button.disabled = true; });
+    });
+    // Clicking a scan shows it at full size over the page; a click or Escape closes it.
+    var viewer = document.getElementById("viewer");
+    document.addEventListener("click", function (e) {
+      var scan = e.target.closest(".scan");
+      if (scan) {
+        viewer.querySelector("img").src = scan.querySelector("img").src;
+        viewer.showModal();
+      } else if (e.target.closest("#viewer")) {
+        viewer.close();
+      }
+    });
+    // The trash icon on a History row asks first; Cancel, Escape or a click outside backs out.
+    var confirmDelete = document.getElementById("confirm-delete");
+    document.addEventListener("click", function (e) {
+      var trash = e.target.closest(".trash");
+      if (trash) {
+        e.preventDefault();  // or the click would also open the row
+        var form = confirmDelete.querySelector("form");
+        form.action = trash.dataset.delete;
+        form.querySelector("span").textContent = trash.dataset.what;
+        edited = true;  // no reload under the open dialog
+        confirmDelete.showModal();
+      } else if (e.target === confirmDelete || e.target.value === "cancel") {
+        confirmDelete.close();
+      }
+    });
+    // Rotate turns the photo a quarter to the left at each press, as in iPhone Photos, redrawn
+    // here so it shows at once. Once the presses stop, the turned copy is sent and read again.
+    var TURN_WAIT = 1200;  // ms after the last press
+    document.addEventListener("click", function (e) {
+      var turn = e.target.closest(".turn");
+      if (!turn) return;
+      var img = turn.parentNode.querySelector("img");
+      if (!img.complete || !img.naturalWidth) return;
+      edited = true;
+      if (!turn.original) {  // drawn from the photo as it was each time, so it isn't recompressed
+        turn.original = document.createElement("canvas");
+        turn.original.width = img.naturalWidth;
+        turn.original.height = img.naturalHeight;
+        turn.original.getContext("2d").drawImage(img, 0, 0);
+        turn.quarters = 0;
+      }
+      var original = turn.original, quarters = turn.quarters = (turn.quarters + 1) % 4;
+      var canvas = document.createElement("canvas");
+      canvas.width = quarters % 2 ? original.height : original.width;
+      canvas.height = quarters % 2 ? original.width : original.height;
+      var context = canvas.getContext("2d");
+      context.translate(canvas.width / 2, canvas.height / 2);
+      context.rotate(-quarters * Math.PI / 2);
+      context.drawImage(original, -original.width / 2, -original.height / 2);
+      img.src = canvas.toDataURL("image/jpeg", 0.9);
+      clearTimeout(turn.timer);
+      if (!quarters) return;  // back the way it was: nothing to send
+      turn.timer = setTimeout(function () {
+        turn.disabled = true;
+        canvas.toBlob(function (blob) {
+          fetch(turn.dataset.turn, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob })
+            .then(function () { location.reload(); })
+            // Nothing was saved, so the next press carries on from what is shown.
+            .catch(function () { turn.disabled = false; });
+        }, "image/jpeg", 0.9);
+      }, TURN_WAIT);
+    });
+    // Corrections save as they are made. A pencil turns its value into a field; leaving the
+    // field or pressing Enter submits it, as does ticking the box or choosing a type. Escape
+    // puts a field back as it was.
+    document.addEventListener("click", function (e) {
+      var pencil = e.target.closest(".pencil");
+      if (!pencil) return;
+      var field = pencil.closest(".field");
+      field.classList.add("editing");
+      field.querySelector("input").focus();
+      edited = true;
+    });
+    document.addEventListener("keydown", function (e) {
+      var field = e.target.closest && e.target.closest("form.facts .field");
+      if (e.key !== "Escape" || !field) return;
+      e.target.value = e.target.defaultValue;
+      if (!field.hasAttribute("data-empty")) field.classList.remove("editing");
+    });
+    // A change is saved once the user has stopped editing that piece's fields. Saving reloads
+    // the page, so if they went straight from one field to the next (tapping the next edit
+    // icon without leaving the first), the save waits until they are done with that one too.
+    function saveWhenIdle(form) {
+      setTimeout(function () {
+        var active = document.activeElement;
+        var typing = active && active.matches("form.facts .field > input") && form.contains(active);
+        if (form.dataset.changed && !typing) form.submit();
+      }, 200);
+    }
+    document.addEventListener("change", function (e) {
+      var form = e.target.closest("form.facts");
+      if (!form) return;
+      form.dataset.changed = "yes";
+      saveWhenIdle(form);
+    });
+    document.addEventListener("focusout", function (e) {
+      var field = e.target.closest && e.target.closest("form.facts .field");
+      if (!field) return;
+      // Leaving a field without changing it puts the plain value back.
+      if (!field.hasAttribute("data-empty") && e.target.value === e.target.defaultValue) {
+        field.classList.remove("editing");
+      }
+      saveWhenIdle(field.closest("form"));
+    });
+    // An open history row counts too, or a reload would close it mid-read.
+    document.addEventListener("toggle", function (e) { if (e.target.open) edited = true; }, true);
+    function tick() {
+      fetch("status").then(function (r) { return r.json(); }).then(function (s) {
+        document.getElementById("activity").hidden = !s.activity;
+        document.getElementById("activity-text").textContent = s.activity + "… this can take a few minutes";
+        document.getElementById("run-now").disabled = !!s.activity;
+        var changed = (results !== null && s.results !== results) || (shown && !s.activity);
+        results = s.results; shown = s.activity;
+        if (!changed) return;
+        if (edited) document.getElementById("stale").hidden = false; else location.reload();
+      }).catch(function () {});
+    }
+    tick();
+    setInterval(tick, 3000);
+    // "Add photo". The picture is redrawn smaller before it is sent: quicker to upload, and the
+    // copy carries none of what a phone stores inside a photo, such as where it was taken.
+    var PHOTO_SIDE = 2400;  // longest side, in pixels; enough for the small print to be read
+    var addPhoto = document.getElementById("add-photo"), photo = document.getElementById("photo");
+    var photoError = document.getElementById("photo-error");
+    addPhoto.addEventListener("click", function () { photo.click(); });
+    photo.addEventListener("change", function () {
+      var file = photo.files[0];
+      if (!file) return;
+      var label = addPhoto.innerHTML;
+      function done(failed) {
+        photo.value = "";  // so choosing the same picture again counts as a change
+        addPhoto.innerHTML = label;
+        addPhoto.disabled = false;
+        photoError.hidden = !failed;
+      }
+      addPhoto.disabled = true;
+      addPhoto.innerHTML = '<span class="spinner" aria-hidden="true"></span>Adding…';
+      var picture = new Image();
+      picture.onerror = function () { done(true); };
+      picture.onload = function () {
+        var scale = Math.min(1, PHOTO_SIDE / Math.max(picture.naturalWidth, picture.naturalHeight));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(picture.naturalWidth * scale);
+        canvas.height = Math.round(picture.naturalHeight * scale);
+        canvas.getContext("2d").drawImage(picture, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(picture.src);
+        canvas.toBlob(function (blob) {
+          if (!blob) return done(true);
+          fetch("photos", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob })
+            .then(function (r) { done(!r.ok); tick(); })  // tick: show "Processing mail" at once
+            .catch(function () { done(true); });
+        }, "image/jpeg", 0.9);
+      };
+      picture.src = URL.createObjectURL(file);
+    });
+  })();
+</script>
+</body>
+</html>

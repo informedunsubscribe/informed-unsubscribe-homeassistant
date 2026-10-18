@@ -1,0 +1,118 @@
+{# The app's styles, shared by every page. #}
+<style>
+  :root { color-scheme: light dark; --bg: #f5f5f4; --card: #fff; --text: #1c1917; --muted: #6b6560;
+          --line: #dedad6; --accent: #0b6bcb; --bad: #b3261e; --ok: #1a7f4b; --warn: #9a6700; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161514; --card: #211f1e; --text: #ece9e6; --muted: #a39d97; --line: #3a3634;
+            --accent: #6cb0f5; --bad: #f2867d; --ok: #6fcf97; --warn: #e3b341; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+           justify-content: space-between; }
+  header .actions { display: flex; gap: 8px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 17px; margin: 28px 0 10px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  a { color: var(--accent); text-decoration: underline; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 14px; margin-bottom: 14px; }
+  .draft { display: grid; grid-template-columns: 240px 1fr; gap: 16px; }
+  @media (max-width: 700px) { .draft { grid-template-columns: 1fr; } }
+  img { max-width: 100%; border-radius: 6px; border: 1px solid var(--line); display: block; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 3px; }
+  input, textarea, select, button { font: inherit; color: inherit; background: var(--bg);
+          border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; }
+  input, textarea { width: 100%; }
+  textarea { min-height: 210px; resize: vertical; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { button.primary { color: #10100f; } }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .row input { flex: 1; min-width: 150px; width: auto; }
+  .error { color: var(--bad); margin: 8px 0 0; }
+  .activity { margin-top: 6px; font-size: 14px; color: var(--accent); }
+  .spinner { display: inline-block; width: 11px; height: 11px; margin-right: 5px; border-radius: 50%;
+             border: 2px solid currentColor; border-right-color: transparent;
+             animation: spin 0.9s linear infinite; vertical-align: -1px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px;
+           border-radius: 99px; border: 1px solid currentColor; }
+  .marketing { color: var(--bad); } .real { color: var(--ok); }
+  .undetermined, .pending, .request-draft { color: var(--warn); }
+  .request-sent { color: var(--ok); } .request-skipped { color: var(--muted); }
+  .hrow { display: grid; grid-template-columns: 100px 1.2fr 1.2fr 1fr 1fr 24px; gap: 10px;
+          padding: 7px 4px; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .hrow > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hhead { font-size: 13px; color: var(--muted); }
+  .history { margin-top: 14px; }
+  .history details { margin: 0; }
+  .history summary { color: var(--text); font-size: 15px; list-style: none; }
+  .history summary::-webkit-details-marker { display: none; }
+  .history summary:hover, .history details[open] > summary { background: var(--bg); }
+  .hbody { padding: 12px 4px; border-bottom: 1px solid var(--line); }
+  .pager { justify-content: space-between; }
+  /* On a phone five columns don't fit, so each History row becomes two lines: the sender and
+     date, then the mail type and request. The addressee is shown when the row is opened. */
+  @media (max-width: 700px) {
+    .hhead { display: none; }
+    .hrow { grid-template-columns: 1fr auto 24px; grid-template-areas: "sender date trash" "type request trash";
+            gap: 2px 10px; padding: 10px 4px; }
+    .hrow > span:nth-child(1) { grid-area: date; color: var(--muted); font-size: 13px; text-align: right; }
+    .hrow > span:nth-child(2) { grid-area: sender; font-weight: 600; }
+    .hrow > span:nth-child(3) { display: none; }
+    .hrow > span:nth-child(4) { grid-area: type; color: var(--muted); font-size: 13px; }
+    .hrow .when { display: none; }  /* the row's own date is enough on a phone */
+    .hrow > span:nth-child(5) { grid-area: request; color: var(--muted); font-size: 13px; text-align: right; }
+    .hrow > span:nth-child(6) { grid-area: trash; align-self: center; }
+  }
+  footer { margin: 36px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .shot { position: relative; }
+  /* Rotate sits on the photo's corner, on a backing that shows on light and dark pictures. */
+  .turn { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; padding: 0;
+          display: grid; place-items: center; border: none; border-radius: 50%;
+          background: rgba(0, 0, 0, 0.55); color: #fff; }
+  .turn:hover { background: rgba(0, 0, 0, 0.75); }
+  .scan { display: block; width: 100%; padding: 0; border: none; background: none; cursor: zoom-in; }
+  #viewer { padding: 0; border: none; border-radius: 8px; max-width: 96vw; max-height: 94vh; overflow: auto; cursor: zoom-out; }
+  #viewer::backdrop { background: rgba(0, 0, 0, 0.7); }
+  #viewer img { max-width: none; border: none; border-radius: 0; }
+  /* What the app read off a piece: label on the left, value on the right. */
+  .facts { display: grid; grid-template-columns: 62px 1fr; gap: 8px 10px; margin: 12px 0 4px; align-items: start; }
+  .facts > label, .facts > span { color: var(--muted); font-size: 13px; margin: 0; padding-top: 3px; }
+  .facts select { padding: 4px 8px; }
+  .facts .row { margin-top: 2px; }
+  label.choice { display: flex; align-items: center; gap: 7px; font-size: 15px; color: var(--text); margin: 0; padding: 0; }
+  label.choice input { width: auto; }
+  /* A value with a pencil beside it; the pencil swaps the value for its field. */
+  .field { display: flex; gap: 6px; align-items: flex-start; }
+  .field .value { overflow-wrap: anywhere; min-width: 0; }
+  .field .activity { margin: 0; font-size: inherit; }
+  .waiting { position: relative; }
+  .waiting .activity { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); margin: 0;
+                       font-size: inherit; pointer-events: none; display: none; }
+  .waiting input:placeholder-shown + .activity { display: block; }
+  .field > input { display: none; }
+  .field.editing > input:not([type=hidden]) { display: block; }
+  .field.editing > .value, .field.editing > .pencil { display: none; }
+  .pencil { flex: none; background: none; border: none; padding: 3px; color: var(--muted); line-height: 0; border-radius: 4px; }
+  .pencil:hover { color: var(--accent); background: var(--bg); }
+  .trash { background: none; border: none; padding: 3px; color: var(--muted); line-height: 0; border-radius: 4px; }
+  .trash:hover { color: var(--bad); background: var(--card); }
+  button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+  @media (prefers-color-scheme: dark) { button.danger { color: #10100f; } }
+  #confirm-delete { max-width: min(420px, 92vw); border: 1px solid var(--line); border-radius: 10px;
+                    background: var(--card); color: var(--text); padding: 0; }
+  #confirm-delete form { padding: 16px 18px; }  /* so a click on the dialog itself is outside it */
+  #confirm-delete::backdrop { background: rgba(0, 0, 0, 0.5); }
+  #confirm-delete p { margin: 0 0 8px; }
+  #confirm-delete .row { justify-content: flex-end; margin-top: 14px; }
+  button.link { background: none; border: none; padding: 6px 4px; color: var(--accent); text-decoration: underline; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+</style>
