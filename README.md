@@ -1,8 +1,8 @@
 # Informed Unsubscribe
 
-A Home Assistant app that reads your USPS Informed Delivery digests, spots marketing mail with
-on-device OCR, finds an opt-out address on the sender's website and drafts a removal request
-for you to review and send.
+A Home Assistant app that reads your USPS Informed Delivery digests and photos you take of your
+mail, spots marketing mail with on-device OCR, finds an opt-out address on the sender's website
+and drafts a removal request for you to review and send.
 
 ## How it works
 
