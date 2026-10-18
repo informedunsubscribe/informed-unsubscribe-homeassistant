@@ -66,7 +66,9 @@ def check_mailbox(cfg) -> int:
         with db.connect() as conn:
             conn.execute("INSERT OR IGNORE INTO messages VALUES (?, ?)", (message_id, now()))
 
-    return mail.poll(cfg, is_done, handle)
+    with db.connect() as conn:
+        first_run = conn.execute("SELECT 1 FROM messages LIMIT 1").fetchone() is None
+    return mail.poll(cfg, is_done, handle, mail.FIRST_RUN_DAYS if first_run else mail.LOOKBACK_DAYS)
 
 
 def known_sender(text: str, senders) -> int | None:

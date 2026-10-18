@@ -7,6 +7,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import date, timedelta
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -872,13 +873,18 @@ def test_mailbox_is_read_without_changing_it_and_each_email_handled_once(cfg, mo
     box = config.Config(
         data_dir=cfg.data_dir, email_address="box@example.org", email_mailbox_password="x"
     )
+    def since(days):
+        start = date.today() - timedelta(days=days)
+        return f"{start.day:02d}-{mail._MONTHS[start.month - 1]}-{start.year}"
+
     assert pipeline.check_mailbox(box) == 3
-    assert log[0] == ("select", "INBOX", True) and log[1][:2] == ("search", "SINCE")
+    assert log[0] == ("select", "INBOX", True) and log[1] == ("search", "SINCE", since(5))  # a first run
     with db.connect() as conn:
         assert conn.execute("SELECT COUNT(*) FROM pieces").fetchone()[0] == 2
     log.clear()
     assert pipeline.check_mailbox(box) == 0  # already handled, read or unread makes no difference
     assert [entry[2] for entry in log if entry[0] == "fetch"] == ["header"] * 3
+    assert log[1] == ("search", "SINCE", since(14))  # later runs look further back
 
 
 def test_wrong_email_mailbox_password_is_reported_plainly(cfg, monkeypatch):

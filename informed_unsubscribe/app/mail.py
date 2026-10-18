@@ -10,8 +10,10 @@ from typing import Callable, NamedTuple
 
 from bs4 import BeautifulSoup
 
-# How far back to look in the mailbox on each run.
+# How far back to look in the mailbox on each run. The first run looks back less, so a new
+# install starts with a few days of mail to review rather than two weeks of it.
 LOOKBACK_DAYS = 14
+FIRST_RUN_DAYS = 5
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 # Used only when the digest's layout can't be read: logos and icons are well under this.
 MIN_IMAGE_BYTES = 5_000
@@ -118,15 +120,16 @@ def _fetched(parts) -> bytes:
     return next((part[1] for part in parts if isinstance(part, tuple)), b"")
 
 
-def poll(cfg, is_done: Callable[[str], bool], handle: Callable[[str, bytes], None]) -> int:
-    """Pass each recent message not yet handled to `handle(message_id, raw)`.
+def poll(cfg, is_done: Callable[[str], bool], handle: Callable[[str, bytes], None],
+         days: int = LOOKBACK_DAYS) -> int:
+    """Pass each message from the last `days` days not yet handled to `handle(message_id, raw)`.
 
     The mailbox is opened read-only and nothing in it is changed. Whether a message has been
     handled is the caller's record, so mail the user has already opened, or mail that arrived
     before a reinstall, is still picked up.
     """
-    today = date.today() - timedelta(days=LOOKBACK_DAYS)
-    since = f"{today.day:02d}-{_MONTHS[today.month - 1]}-{today.year}"
+    start = date.today() - timedelta(days=days)
+    since = f"{start.day:02d}-{_MONTHS[start.month - 1]}-{start.year}"
     count = 0
     with imaplib.IMAP4_SSL(cfg.imap_host, cfg.imap_port) as imap:
         try:
