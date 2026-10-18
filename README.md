@@ -1,8 +1,12 @@
 # Informed Unsubscribe
 
+<img src="informed_unsubscribe/icon.png" alt="" width="96" align="right">
+
 A Home Assistant app that reads your USPS Informed Delivery digests and photos you take of your
 mail, spots marketing mail with on-device OCR, finds an opt-out address on the sender's website
 and drafts a removal request for you to review and send.
+
+[![Add the repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Finformedunsubscribe%2Finformed-unsubscribe-homeassistant)
 
 ## How it works
 
@@ -66,52 +70,19 @@ name, the crawl of the sender's site, and the mailbox connection.
 
 Informed Unsubscribe helps you get off mailing lists once junk mail arrives. I've been using [Virtual Post Mail](https://refer.virtualpostmail.com/l/1KHIYEPRR/vpmmail) (referral link) to make it less likely for my address to get on lists to begin with. For more on digital hygiene I enjoyed [Andrej Karpathy's post](https://karpathy.bearblog.dev/digital-hygiene/)
 
-## Corrections
+## Install
 
-Changing a piece's category, sender or addressee in the review screen records your answer next
-to what the app had decided: its category, the rule that decided it, and the app version. The
-"Download your corrections" link exports these as JSON, which is the raw material for improving
-the rules. The file contains names and addresses read from your mail, so treat it as private.
+You need a USPS [Informed Delivery](https://informeddelivery.usps.com/) account and a spare Gmail
+account for the app to read from and send from.
 
-## Setup
+[![Add the repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Finformedunsubscribe%2Finformed-unsubscribe-homeassistant)
 
-### 1. Dedicated mailbox
+Or add the repository by hand: in Home Assistant, go to Settings → Apps → App store → ⋮ →
+Repositories and add `https://github.com/informedunsubscribe/informed-unsubscribe-homeassistant`.
 
-1. Create a new Gmail account and turn on 2-Step Verification.
-2. Create an app password at <https://myaccount.google.com/apppasswords>.
-3. In your main Gmail: Settings → Forwarding and POP/IMAP → Add a forwarding address. Gmail
-   emails a confirmation code to the new account; open it there and confirm.
-4. In your main Gmail, create a filter for `from:(informeddelivery.usps.com)` with the action
-   "Forward it to" the new address.
-
-Another IMAP/SMTP provider works too; change `imap_host` and `smtp_host`.
-
-### 2. Install the app
-
-1. In Home Assistant, go to Settings → Apps → App store → ⋮ → Repositories, add
-   `https://github.com/informedunsubscribe/informed-unsubscribe-homeassistant` and close the dialog.
-2. Install "Informed Unsubscribe" from the new section in the app store.
-3. Fill in the Configuration tab and start the app. Turn on "Show in sidebar" on its Info tab to
-   open it from the sidebar.
-
-Updates show up in Home Assistant like any other app update.
-
-| Option                                    | Meaning                                                                                                                                                                                                |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `email_address`, `email_mailbox_password` | The dedicated mailbox address and its app password                                                                                                                                                     |
-| `physical_mail_address`                   | Quoted in each request so the sender can find the listing. Start it with the house number; that is how the app finds the addressee on a scan                                                           |
-| `resident_last_names`                     | Last names of everyone who lives here. Leave empty to turn off the "does not live here" requests.                                                                                                      |
-| `bcc_email_address`                       | Optional address, such as your main Gmail, that gets a blind copy of every request you send. The sender never sees it                                                                                  |
-| `previous_resident_last_names`            | Optional. Last names of people who used to live here. Helps the app find their name on a scan and treat the piece as not for a resident                                                                |
-| `california_resident`                     | Adds a paragraph invoking your deletion and opt-out rights under the California Consumer Privacy Act                                                                                                   |
-| `registered_with_dmachoice`               | Adds a line saying the address is registered with DMAchoice. Turn on only if it is; there is no government do-not-mail list in the US                                                                  |
-| `brave_search_api_key`                    | Optional [Brave Search API](https://brave.com/search/api/) key. With it, sender lookups use the API and are not rate-limited. Without it the app scrapes DuckDuckGo, which blocks after a few searches |
-| `from_name`                               | Optional name shown to senders beside the mailbox address. Every sender sees it. Empty uses the street from `physical_mail_address` with "Resident", such as "12 Oak Court Resident"                   |
-| `reply_to_email_address`                  | Optional address for senders' replies; otherwise they go to the dedicated mailbox. Unlike `bcc_email_address`, the sender does see this address                                                        |
-| `hours_between_runs`                      | Hours between automatic runs (default 24), counted from the end of the last run. Ignored when `run_at_time` is set. "Run now" in the app starts one immediately                                        |
-| `run_at_time`                             | Optional time of day, 24-hour `HH:MM` in Home Assistant's time zone, such as `06:00`. The app then runs once a day at that time instead of every few hours                                             |
-| `notify_when_mail_to_review`              | Shows a Home Assistant notification when new mail arrives in For Review and removes it once the queue is empty (default on)                                                                            |
-| `days_to_keep_scans`                      | Days to keep each scan (default 90). A piece's History entry is kept; scans of mail still waiting for a decision are kept until it is settled                                                          |
+Then install "Informed Unsubscribe" from the app store and follow its
+[Documentation tab](informed_unsubscribe/DOCS.md) to set up the mailbox and fill in the
+configuration. Updates show up in Home Assistant like any other app update.
 
 ## Development
 
