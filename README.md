@@ -83,9 +83,13 @@ Another IMAP/SMTP provider works too; change `imap_host` and `smtp_host`.
 
 ### 2. Install the app
 
-Copy the `informed_unsubscribe/` folder to `/addons/informed_unsubscribe` on Home Assistant (with the
-Samba or SSH app), then go to Settings → Apps → App store → ⋮ → Check for updates. Install
-"Informed Unsubscribe" from the local apps section, fill in the Configuration tab and start it.
+1. In Home Assistant, go to Settings → Apps → App store → ⋮ → Repositories, add
+   `https://github.com/informedunsubscribe/informed-unsubscribe-homeassistant` and close the dialog.
+2. Install "Informed Unsubscribe" from the new section in the app store.
+3. Fill in the Configuration tab and start the app. Turn on "Show in sidebar" on its Info tab to
+   open it from the sidebar.
+
+Updates show up in Home Assistant like any other app update.
 
 | Option                                    | Meaning                                                                                                                                                                                                |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -102,6 +106,7 @@ Samba or SSH app), then go to Settings → Apps → App store → ⋮ → Check 
 | `hours_between_runs`                      | Hours between automatic runs (default 24), counted from the end of the last run. Ignored when `run_at_time` is set. "Run now" in the app starts one immediately                                        |
 | `run_at_time`                             | Optional time of day, 24-hour `HH:MM` in Home Assistant's time zone, such as `06:00`. The app then runs once a day at that time instead of every few hours                                             |
 | `notify_when_mail_to_review`              | Shows a Home Assistant notification when new mail arrives in For Review and removes it once the queue is empty (default on)                                                                            |
+| `days_to_keep_scans`                      | Days to keep each scan (default 90). A piece's History entry is kept; scans of mail still waiting for a decision are kept until it is settled                                                          |
 
 ## Development
 
@@ -118,3 +123,16 @@ Every option can be set as an upper-cased environment variable. The UI is at
 <http://localhost:8099>. The container installs its Python packages from Alpine, so
 `requirements.txt` is only for development. Running outside the container needs `tesseract` on your PATH
 (`brew install tesseract`).
+
+To try a change on Home Assistant before publishing it, copy the `informed_unsubscribe/` folder to
+`/addons/informed_unsubscribe` (with the Samba or SSH app) and delete the `image:` line from that
+copy's `config.yaml`, so Home Assistant builds it locally instead of pulling the published image.
+Then go to Settings → Apps → App store → ⋮ → Check for updates and install it from the local
+apps section.
+
+Pushing to `prod` builds and publishes the images (`.github/workflows/build.yml`), tagged with the
+version in `config.yaml`. Bump the version in `config.yaml` and `app/__init__.py` with every change.
+
+## License
+
+[GNU Affero General Public License v3.0](LICENSE).
