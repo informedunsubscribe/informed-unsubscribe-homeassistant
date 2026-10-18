@@ -458,9 +458,10 @@ def check_resident(names: list[str], cfg) -> int | None:
     """1 if the addressee lives here, 0 if not, None if unknown.
 
     A current resident's last name wins, and matching is forgiving of OCR slips, so a
-    doubtful name counts as a resident. Anyone else is a non-resident once the household has
-    listed who lives there or who used to. "Current Resident" and the like name nobody, so
-    they say nothing either way.
+    doubtful name counts as a resident. A previous resident's last name is a non-resident.
+    Anyone else is a non-resident once the household has listed who lives there; with only
+    previous residents listed, they are unknown. "Current Resident" and the like name nobody,
+    so they say nothing either way.
     """
     names = [name for name in names if _OR_RESIDENT.sub(" ", _TO_ANYONE.sub(" ", name)).strip()]
     if not names:
