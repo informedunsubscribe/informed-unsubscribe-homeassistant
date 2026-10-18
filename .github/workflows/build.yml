@@ -29,7 +29,8 @@ jobs:
 
       - name: Read the version from config.yaml
         id: version
-        run: echo "version=$(sed -n 's/^version: *"\(.*\)"/\1/p' informed_unsubscribe/config.yaml)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(sed -n 's/^version: *"\(.*\)"/\1/p' informed_unsubscribe/config.yaml)" >> "$GITHUB_OUTPUT"
 
       # Emulates arm64 so the aarch64 image can be built on GitHub's x86 runner.
       - uses: docker/setup-qemu-action@v3
