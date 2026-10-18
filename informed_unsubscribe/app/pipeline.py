@@ -66,9 +66,15 @@ def check_mailbox(cfg) -> int:
         with db.connect() as conn:
             conn.execute("INSERT OR IGNORE INTO messages VALUES (?, ?)", (message_id, now()))
 
+    # The first run looks back a few days. Later runs look back further, but never past the
+    # first run's window, or they would take in the mail it left out.
     with db.connect() as conn:
-        first_run = conn.execute("SELECT 1 FROM messages LIMIT 1").fetchone() is None
-    return mail.poll(cfg, is_done, handle, mail.FIRST_RUN_DAYS if first_run else mail.LOOKBACK_DAYS)
+        first = conn.execute("SELECT MIN(handled_at) FROM messages").fetchone()[0]
+    days = mail.FIRST_RUN_DAYS
+    if first:
+        start = datetime.fromisoformat(first).astimezone().date() - timedelta(days=mail.FIRST_RUN_DAYS)
+        days = min(mail.LOOKBACK_DAYS, (datetime.now().date() - start).days)
+    return mail.poll(cfg, is_done, handle, days)
 
 
 def known_sender(text: str, senders) -> int | None:

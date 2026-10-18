@@ -7,7 +7,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -884,7 +884,18 @@ def test_mailbox_is_read_without_changing_it_and_each_email_handled_once(cfg, mo
     log.clear()
     assert pipeline.check_mailbox(box) == 0  # already handled, read or unread makes no difference
     assert [entry[2] for entry in log if entry[0] == "fetch"] == ["header"] * 3
-    assert log[1] == ("search", "SINCE", since(14))  # later runs look further back
+    assert log[1] == ("search", "SINCE", since(5))  # not back past what the first run left out
+
+    def later_run(days_since_first):
+        handled = (datetime.now(timezone.utc) - timedelta(days=days_since_first)).isoformat(timespec="seconds")
+        with db.connect() as conn:
+            conn.execute("UPDATE messages SET handled_at = ?", (handled,))
+        log.clear()
+        pipeline.check_mailbox(box)
+        return log[1]
+
+    assert later_run(3) == ("search", "SINCE", since(8))
+    assert later_run(30) == ("search", "SINCE", since(14))  # a box that was off still catches up
 
 
 def test_wrong_email_mailbox_password_is_reported_plainly(cfg, monkeypatch):

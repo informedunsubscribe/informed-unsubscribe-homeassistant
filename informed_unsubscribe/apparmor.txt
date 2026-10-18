@@ -1,14 +1,13 @@
 #include <tunables/global>
 
-# Home Assistant loads this for the app; the profile is named after the slug in config.yaml.
-# "complain" logs what would be refused without refusing it. Once a full run on Home Assistant
-# logs nothing, remove "complain," to enforce it.
-profile informed_unsubscribe flags=(complain,attach_disconnected,mediate_deleted) {
+# Home Assistant loads this for the app and renames the profile to its own id for it (such as
+# "266e2efd_informed_unsubscribe"), so rules refer to the profile as @{profile_name}.
+profile informed_unsubscribe flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
   # Home Assistant stops the app with a signal; the app stops its own helpers on a timeout.
   signal (receive) peer=unconfined,
-  signal (send,receive) peer=informed_unsubscribe,
+  signal (send,receive) peer=@{profile_name},
 
   # IMAP, SMTP, the sender lookups, the ingress web page and Home Assistant's notification API.
   network inet stream,
