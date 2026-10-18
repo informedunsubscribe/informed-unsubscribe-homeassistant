@@ -59,9 +59,7 @@ name, the crawl of the sender's site, and the mailbox connection.
 
 ## Keeping your address off lists
 
-This app helps you get off mailing lists once junk mail arrives. Fewer lists get your home address
-in the first place if you give merchants and online services a virtual mailing address instead.
-I've been using [Virtual Post Mail](https://refer.virtualpostmail.com/l/1KHIYEPRR/vpmmail) (referral link). For more on digital hygiene I enjoyed [Andrej Karpathy's post](https://karpathy.bearblog.dev/digital-hygiene/)
+Informed Unsubscribe helps you get off mailing lists once junk mail arrives. I've been using [Virtual Post Mail](https://refer.virtualpostmail.com/l/1KHIYEPRR/vpmmail) (referral link) to make it less likely for my address to get on lists to begin with. For more on digital hygiene I enjoyed [Andrej Karpathy's post](https://karpathy.bearblog.dev/digital-hygiene/)
 
 ## Corrections
 
