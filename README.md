@@ -26,6 +26,11 @@ and drafts a removal request for you to review and send.
 4. If you list your household's last names, the app also reads the addressee above your street
    address. Mail for anyone else, marketing or not, gets a "does not live at this address"
    request instead of an opt-out.
+
+   You can also list the last names of people who used to live at your address. The app looks
+   for those names anywhere on the piece, so it finds the addressee even when the name is
+   printed off to one side or OCR misreads a letter. Their mail always gets a "does not live at
+   this address" request, and the list works even if you leave your household's names empty.
 5. For each sender that needs a request, the app finds the sender's website:
    - A web address printed on the piece is used as is.
    - Otherwise it searches the web (the Brave Search API if you set a key, else DuckDuckGo),
