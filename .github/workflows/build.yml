@@ -1,0 +1,54 @@
+# Builds the app's image for each architecture in config.yaml and publishes it to GitHub's
+# container registry, tagged with config.yaml's version. Home Assistant pulls that tag
+# (see "image" in config.yaml) instead of building on the user's box.
+name: Build image
+
+on:
+  push:
+    branches: [prod]
+    paths:
+      - informed_unsubscribe/**
+      - .github/workflows/build.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the version from config.yaml
+        id: version
+        run: echo "version=$(sed -n 's/^version: *"\(.*\)"/\1/p' informed_unsubscribe/config.yaml)" >> "$GITHUB_OUTPUT"
+
+      # Emulates arm64 so the aarch64 image can be built on GitHub's x86 runner.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: informed_unsubscribe
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/informedunsubscribe/${{ matrix.arch }}-informed-unsubscribe:${{ steps.version.outputs.version }}
+          labels: |
+            io.hass.type=addon
+            io.hass.version=${{ steps.version.outputs.version }}
+            io.hass.arch=${{ matrix.arch }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
