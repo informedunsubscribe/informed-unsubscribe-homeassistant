@@ -349,9 +349,17 @@ def update_piece(server, form, piece_id: str) -> None:
         # is done for names read off scans, would either discard the correction or change
         # other pieces the user didn't touch.
         sender_id = db.upsert_sender(conn, form.get("sender", ""), merge_similar=False)
-        resident = 1 if form.get("lives_here") else classify.check_resident(
-            [recipient] if recipient else [], cfg
-        )
+        # Unticking the box says they have moved, even if their last name is a resident's.
+        # Left unticked, the answer only changes when the name does, so an earlier untick
+        # survives later corrections to the same piece.
+        if form.get("lives_here"):
+            resident = 1
+        elif form.get("lives_here_was"):
+            resident = 0
+        elif recipient == piece["recipient"]:
+            resident = piece["resident"]
+        else:
+            resident = classify.check_resident([recipient] if recipient else [], cfg)
         conn.execute(
             "UPDATE pieces SET sender_id = ?, recipient = ?, resident = ?, corrected_at = ? "
             "WHERE id = ?",

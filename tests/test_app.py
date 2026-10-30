@@ -1488,12 +1488,40 @@ def test_a_correction_can_be_undone_by_putting_the_fact_back(tmp_path, monkeypat
         post("/pieces/1", lives_here="1", **smith)       # ticked by mistake...
         post("/pieces/2", category="real", **acme)        # ...and the wrong type chosen
         assert requests() == []
-        post("/pieces/1", **smith)                         # unticked again
+        post("/pieces/1", lives_here_was="1", **smith)     # unticked again
         page = post("/pieces/2", category="marketing", **acme)
     finally:
         server.shutdown()
         server.server_close()
     assert requests() == [("moved", "draft"), ("optout", "draft")] and "For Review (2)" in page
+
+
+def test_a_resident_can_be_marked_as_moved_though_their_name_matches(tmp_path, monkeypatch):
+    db.init(str(tmp_path))
+    home = config.Config(data_dir=str(tmp_path), resident_last_names=("Doe",),
+                         physical_mail_address="12 Oak Court, Springfield IL 62704")
+    monkeypatch.setattr(research, "research", lambda name, website="", **e: research.Result("", [], False))
+    pipeline.ingest(home, digest())
+    monkeypatch.setattr(classify, "read", lambda image: envelope(["PAT DOE"], sender="Summit Bank", extra=["FIRST-CLASS"]))
+    pipeline.classify_pending(home)
+
+    def resident():
+        with db.connect() as conn:
+            return conn.execute("SELECT resident FROM pieces WHERE id = 1").fetchone()[0]
+
+    server, post = _served(home)
+    try:
+        assert resident() == 1
+        pat = dict(sender="Summit Bank", recipient="PAT DOE")
+        post("/pieces/1", lives_here_was="1", category="real", **pat)   # unticked: Pat has moved
+        assert resident() == 0
+        post("/pieces/1", category="marketing", **pat)                  # a later correction keeps it
+        assert resident() == 0
+        post("/pieces/1", lives_here="1", category="marketing", **pat)  # and ticking puts it back
+        assert resident() == 1
+    finally:
+        server.shutdown()
+        server.server_close()
 
 
 def test_a_request_removed_by_a_correction_is_written_again_when_due(tmp_path, monkeypatch):

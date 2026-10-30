@@ -71,7 +71,7 @@
       {{ pencil("addressee") }}
     </div>
     <span></span>
-    <label class="choice"><input type="checkbox" name="lives_here" value="1" {{ "checked" if i.resident == 1 }}> Is current resident</label>
+    <label class="choice"><input type="checkbox" name="lives_here" value="1" {{ "checked" if i.resident == 1 }}> Is current resident<input type="hidden" name="lives_here_was" value="{{ 1 if i.resident == 1 else '' }}"></label>
     <label for="{{ key }}-type">Type</label>
     <div>
       <select id="{{ key }}-type" name="category">
